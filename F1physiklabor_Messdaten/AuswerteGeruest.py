@@ -60,7 +60,7 @@ def theoretical_transfer_function(omega, delta, omega_0):
 
 # Lies die Eingangsdaten ein. Hier bitte den richtigen Pfadnamen einsetzen,
 # oder eine Routine schreiben, die das interaktiv einließt.
-data1 = Tektronix.Dict('ALL0005')
+data1 = Tektronix.Dict('ALL0008')
 input1 = data1['CH1']
 output1 = data1['CH2']
 
@@ -130,48 +130,13 @@ H_mod[np.abs(freq) > 10] = 0
 H_mod[np.abs(input_fft) < 0.05 * np.max(np.abs(input_fft))] = 0
 
 
-"""TEST"""
-# Experimentelle Daten
-freq_experiment = freq  # Frequenzen aus dem Plot
-H_experiment = np.abs(H_mod)  # Betrag der experimentellen Übertragungsfunktion
-
-# Konvertiere Frequenzen von Hz in rad/s für die Anpassung
-omega_experiment = 2 * np.pi * freq_experiment
-
-# Curve Fit: Passe die theoretische Funktion an die experimentellen Daten an
-popt, pcov = curve_fit(
-    theoretical_transfer_function, 
-    omega_experiment, 
-    H_experiment, 
-    p0=[0.05, 2 * np.pi * 1]  # Startwerte: delta = 0.05, omega_0 = 2*pi*1 Hz
-)
-
-delta_fit, omega_0_fit = popt
-
-# Angepasste Parameter ausgeben
-print(f"Angepasste Parameter:")
-print(f"  delta = {delta_fit}")
-print(f"  omega_0 = {omega_0_fit/(2*np.pi):.4f} Hz")
-
-# Theoretische Übertragungsfunktion mit den angepassten Parametern berechnen
-H_theoretical_fit = theoretical_transfer_function(omega_experiment, delta_fit, omega_0_fit)
-
-# Plot der experimentellen und angepassten Übertragungsfunktionen
-plt.figure(figsize=(10, 6))
-
-# Betrag der Übertragungsfunktion
-plt.plot(freq_experiment, H_experiment, 'o', label='Experimentell', markersize=4)
-plt.plot(freq_experiment, H_theoretical_fit, '-', label=f"Theoretisch (Fit): $\delta$={delta_fit}, $f_0$={omega_0_fit/(2*np.pi):.4f} Hz")
-plt.xlabel("Frequenz [Hz]")
-plt.ylabel("Betrag der Übertragungsfunktion $|H(f)|$")
-plt.title("Anpassung der Übertragungsfunktion")
-plt.grid()
-plt.legend()
-
-plt.tight_layout()
-plt.show()
-
+"""ANALYTISCHE FUNKTION H TORSION"""
+analytisch_H_func = lambda omega , delta , omega_null: np.abs(1/(-omega**2 + 2j*delta*omega + omega_null**2))
+params , covariance = curve_fit(analytisch_H_func , 2*np.pi*freq , np.abs(H_mod))
+analytisch_H = analytisch_H_func(2*np.pi*freq , params[0] , params[1])
+print(params)
 """TEST ZUENDE"""
+
 # Erzeuge eine Figure und zwei Axes für den Plot der Übertragungsfunktion.
 fig2 = plt.figure('Übertragungsfunktion', figsize=(10, 5))
 fig2.set_tight_layout(True)
@@ -201,8 +166,11 @@ for ax in ax2.flat:
 # Konventiongemäß wird bei Übertragungsfunktionen der Winkel mit einem
 ax2[0, 0].plot(freq, np.abs(H))
 ax2[1, 0].plot(freq, -np.angle(H))
-ax2[0, 1].plot(freq, np.abs(H_mod))
+# ax2[0, 1].plot(freq, analytisch_H, label="analytisch")
+ax2[0, 1].plot(freq, np.abs(H_mod), label="experimentell")
 ax2[1, 1].plot(freq, -np.angle(H_mod))
+ax2[0, 1].legend()
+
 
 
 # #############################################################################
@@ -244,6 +212,13 @@ output2_theo_fft = input2_fft * H_interp
 output2_theo_fft = np.fft.ifftshift(output2_theo_fft)
 output2_theo = np.fft.ifft(output2_theo_fft, norm='forward')
 
+"""BERECHNE MITTLEREN QUADRATISCHEN FEHLER ZWISCHEN THEORETISCHER BERECHNUNG UND GEMESSENEN WERTEN"""
+
+mse = np.mean((np.array(output2.y) - np.real(np.array(output2_theo)))**2)
+print(f"Mittlerer quadratischer Fehler: {mse}")
+
+
+"""ENDE"""
 # Erzeuge eine Figure und zwei Axes für das Eingangssignal, sowie das
 # gemessene und berechnete Ausgangssignal.
 fig3 = plt.figure('Vorhersage des Ausgangssignals')
@@ -261,6 +236,10 @@ ax3_unten.set_ylabel('U [V]')
 ax3_unten.grid()
 ax3_unten.plot(time2, output2.y, label='gemessen')
 ax3_unten.plot(time2, np.real(output2_theo), label='berechnet')
+# MSE in den Plot einfügen
+mse_text = f"MSE: {mse}"
+ax3_unten.text(0.15, 0.95, mse_text, transform=ax3_unten.transAxes, fontsize=10,
+               verticalalignment='top', bbox=dict(boxstyle="round", facecolor="red", alpha=0.5))
 ax3_unten.legend()
 
 # Zeige alle Grafiken an.
