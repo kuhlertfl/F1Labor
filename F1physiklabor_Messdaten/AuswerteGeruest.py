@@ -60,7 +60,7 @@ def theoretical_transfer_function(omega, delta, omega_0):
 
 # Lies die Eingangsdaten ein. Hier bitte den richtigen Pfadnamen einsetzen,
 # oder eine Routine schreiben, die das interaktiv einließt.
-data1 = Tektronix.Dict('ALL0008')
+data1 = Tektronix.Dict('ALL0009')
 input1 = data1['CH1']
 output1 = data1['CH2']
 
@@ -97,7 +97,7 @@ ax1_links.legend()
 ax1_rechts.set_title('Frequenzbereich')
 ax1_rechts.set_xlabel('f [Hz]')
 ax1_rechts.set_ylabel('U [V]')
-ax1_rechts.set_xlim(-5, 5)
+ax1_rechts.set_xlim(freq.min()/100,freq.max()/100)
 ax1_rechts.grid()
 ax1_rechts.plot(freq, np.abs(input_fft), label='input')
 ax1_rechts.plot(freq, np.abs(output_fft), label='output')
@@ -130,13 +130,21 @@ H_mod[np.abs(freq) > 10] = 0
 H_mod[np.abs(input_fft) < 0.05 * np.max(np.abs(input_fft))] = 0
 
 
-"""ANALYTISCHE FUNKTION H TORSION"""
-analytisch_H_func = lambda omega , delta , omega_null: np.abs(1/(-omega**2 + 2j*delta*omega + omega_null**2))
-params , covariance = curve_fit(analytisch_H_func , 2*np.pi*freq , np.abs(H_mod))
-analytisch_H = analytisch_H_func(2*np.pi*freq , params[0] , params[1])
-print(params)
-"""TEST ZUENDE"""
+# """ANALYTISCHE FUNKTION H TORSION"""
+# analytisch_H_func = lambda omega , delta , omega_null: np.abs(1/(-omega**2 + 2j*delta*omega + omega_null**2))
+# params , covariance = curve_fit(analytisch_H_func , 2*np.pi*freq , np.abs(H_mod))
+# analytisch_H = analytisch_H_func(2*np.pi*freq , params[0] , params[1])
+# print(params)
+# """TORSION THEORETISCH  ZUENDE"""
+"""ANALYTISCHE FUNKTION RC-BANDPASSFILTER"""
 
+# Lambda-Funktion für die Übertragungsfunktion
+H = lambda R1, R2, C1, C2, omega: (1j * omega / (1 / (R1 * C1))) / (1 + 1j * omega / (1 / (R1 * C1))) * \
+                                  (1 / (1 + 1j * omega / (1 / (R2 * C2))))
+params , covariance = curve_fit(H , 2*np.pi*freq , np.abs(H_mod))
+
+
+"""RC BANDPASS THEORETISCH ZUENDE"""
 # Erzeuge eine Figure und zwei Axes für den Plot der Übertragungsfunktion.
 fig2 = plt.figure('Übertragungsfunktion', figsize=(10, 5))
 fig2.set_tight_layout(True)
@@ -150,13 +158,15 @@ fig2.suptitle('Übertragungsfunktion')
 ax2 = fig2.subplots(2, 2, sharex=True)
 ax2[0, 0].sharey(ax2[0, 1])
 ax2[1, 0].sharey(ax2[1, 1])
-ax2[0, 0].set_xlim(-5, 5)
-ax2[0, 1].set_xlim(-5, 5)
+ax2[0, 0].set_xlim(freq.min()/100,freq.max()/100)
+ax2[0, 1].set_xlim(freq.min()/100,freq.max()/100)
 ax2[0, 0].set_ylim(0, 2)
 ax2[0, 0].set_title('ungefiltert')
 ax2[0, 1].set_title('modifiziert')
 ax2[1, 0].set_xlabel('f [Hz]')
+ax2[1, 0].set_xlim(freq.min()/100,freq.max()/100)
 ax2[1, 1].set_xlabel('f [Hz]')
+ax2[1, 1].set_xlim(freq.min()/100,freq.max()/100)
 ax2[0, 0].set_ylabel('|H|')
 ax2[1, 0].set_ylabel('arg(H) [rad]')
 for ax in ax2.flat:
@@ -184,7 +194,7 @@ ax2[0, 1].legend()
 
 # Lies die Eingangsdaten ein. Hier bitte den richtigen Pfadnamen einsetzen,
 # oder eine Routine schreiben, die das interaktiv einließt.
-data2 = Tektronix.Dict('ALL0005')
+data2 = Tektronix.Dict('ALL0009')
 input2 = data2['CH1']
 output2 = data2['CH2']
 
@@ -237,8 +247,8 @@ ax3_unten.grid()
 ax3_unten.plot(time2, output2.y, label='gemessen')
 ax3_unten.plot(time2, np.real(output2_theo), label='berechnet')
 # MSE in den Plot einfügen
-mse_text = f"MSE: {mse}"
-ax3_unten.text(0.15, 0.95, mse_text, transform=ax3_unten.transAxes, fontsize=10,
+mse_text = f"MSE: {mse:.7f}"
+ax3_unten.text(0.3, 0.95,mse_text, transform=ax3_unten.transAxes, fontsize=10,
                verticalalignment='top', bbox=dict(boxstyle="round", facecolor="red", alpha=0.5))
 ax3_unten.legend()
 
