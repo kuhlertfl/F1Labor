@@ -14,8 +14,6 @@ product = sinus * rectangle  # Produkt aus Sinus und Rechteckimpuls
 
 N = len(t)  # Anzahl der Samples
 product_fft = np.fft.fft(product)  # Fourier-Transformation des Produkts
-print(product_fft)
-print(type(product_fft))
 frequencies = np.fft.fftfreq(N, 1/fs)  # Frequenzachse
 
 plt.figure(figsize=(12, 6))
